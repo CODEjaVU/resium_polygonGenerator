@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Cartesian3, Color } from "cesium";
+import { Cartesian3, Color,ColorMaterialProperty ,CallbackProperty,defined} from "cesium";
 import { Viewer, Entity, PolygonGraphics , CameraFlyTo} from "resium";
 import axios from "axios";
 import { xml2json } from "xml-js";
@@ -36,29 +36,50 @@ function App() {
         })
         .catch(err => console.log(err));
   },[])
+  
 	const renderPolygon = () =>{
 		let plgs = null
 			plgs = (	
-				position.map((coor) =>{	
-					return (
-						<Entity description="Polygons" >
-							<PolygonGraphics
-								hierarchy={coor}
-								perPositionHeight={true}
-								material={Color.BLUE.withAlpha(0.4)}
-								outline = {true}
-								outlineColor = {Color.BLACK}
-							/>
-						</Entity>
-						)
-					})
-				)
+				position.map((coor, index) => {
+          var colorProperty = new ColorMaterialProperty();
+          var colors=Color.BLUE.withAlpha(0.5);
+          colorProperty.color=colors;
+          colorProperty.color = new CallbackProperty(function () {
+            return colors;
+          }, false);
+          return (
+            <Entity key={index} name={'Polygon'}>
+              <PolygonGraphics
+                hierarchy={coor}
+                perPositionHeight={true}
+                material={colorProperty}
+                outline={true}
+              />
+            </Entity>
+          )
+        }))  
 		return plgs;
 	}
+
   return (
     <div>
-      <Viewer full>
-        {renderPolygon()}
+       <Viewer full  onSelectedEntityChange={(selectedEntity) => {
+        if (defined(selectedEntity)) {
+          if (selectedEntity.name === 'Polygon') {
+            if (!Color.equals(selectedEntity.polygon.material.color.getValue(), Color.BLUE.withAlpha(0.5))) {
+              selectedEntity.polygon.material.color.setCallback(function () {
+                return Color.BLUE.withAlpha(0.5);
+              }, false)
+            }
+            else if (!Color.equals(selectedEntity.polygon.material.color.getValue(), Color.YELLOW.withAlpha(0.5))) {
+              selectedEntity.polygon.material.color.setCallback(function () {
+                return Color.YELLOW.withAlpha(0.5);
+              }, false)
+            }
+          }
+        }
+      }} >
+         {renderPolygon()}
         (<CameraFlyTo  duration={2} 
         destination={Cartesian3.fromDegrees(-93.62033081054688, 42.01864242553711, 330.75982666015625)}/> )
       </Viewer>
